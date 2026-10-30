@@ -1,0 +1,32 @@
+[project]
+name = "agent-tools-cl"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Pablo Galilea", email = "pgalilea@me.com" }
+]
+requires-python = ">=3.11"
+dependencies = [
+    "click>=8.5.0",
+    "fastmcp>=4.1.4",
+    "httpx>=0.28.1",
+]
+
+[project.scripts]
+agent-tools-cl = "agent_tools_cl:main"
+
+[build-system]
+requires = ["uv_build>=0.13.0,<0.14.0"]
+build-backend = "uv_build"
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "agent_tools_cl"
+source-include = ["tests/**"]
+
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ty>=0.0.95",
+]

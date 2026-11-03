@@ -1,7 +1,7 @@
 [project]
 name = "agent-tools-cl"
 version = "0.1.0"
-description = "Add your description here"
+description = "Agent tools for chilean market"
 readme = "README.md"
 authors = [
     { name = "Pablo Galilea", email = "pgalilea@me.com" }

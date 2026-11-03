@@ -1,9 +1,10 @@
+from collections.abc import Callable
 from datetime import date
 
 from .constants import MAX_AGE_DAYS
 
 
-def validator(name: str, low: float, hi: float):
+def validator(name: str, low: float, hi: float) -> Callable:
     """Reject implausible or stale values; each source applies this to its own data."""
 
     def validate(value: float, as_of: date) -> float:

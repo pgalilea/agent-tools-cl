@@ -32,7 +32,7 @@ uv tool uninstall agent-tools-cl
 
 ## CLI
 
-All commands print a single bare number (easy to script / pipe) and exit non-zero if every source fails. Require Python ≥ 3.11.
+All commands output a single bare number (easy to script / pipe) and exit non-zero if every source fails. Require Python ≥ 3.11.
 
 ### `financial uf`
 

@@ -61,6 +61,24 @@ def _sii_html(value="41.242,32"):
     return f'<table id="table_export"><tbody>{row}</tbody></table>'
 
 
+def _gr_html(value="993,22", year=None, day=None, month=None):
+    """Minimal BCCh #gr grid: one day row, twelve month columns, one cell set."""
+    today = date.today()
+    cells = [""] * 12
+    if value is not None:
+        cells[(month if month is not None else today.month) - 1] = value
+    row = (
+        f'<tr><td align="center">{day if day is not None else today.day}</td>'
+        + "".join(
+            f'<td align="center"><span class="obs">{c}</span></td>' for c in cells
+        )
+        + "</tr>"
+    )
+    selected = year if year is not None else today.year
+    select = f'<option selected="selected" value="{selected}">{selected}</option>'
+    return f'{select}<table id="gr">{row}</table>'
+
+
 def _client(
     html=HTML,
     payload=JSON,
@@ -154,5 +172,84 @@ def test_get_dollar_rejects_stale_values_from_every_source():
 def test_get_dollar_rejects_uf_sized_values():
     # A UF-sized number must never pass as a dollar: bounds are per indicator.
     client = _client(html=DOLLAR_HTML.replace("993,22", "41.242,32"), payload=JSON)
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_dollar(client=client))
+
+
+def _catalog_html(href="Serie.aspx?gcode=PRE_TCO&amp;param=ignored"):
+    """Minimal IndicadoresDiarios.aspx: the dollar series label plus its link."""
+    return (
+        '<label id="lblSerie1_3">Dólar observado</label>'
+        f'<a id="hypLnk1_3" title="Ver serie" href="{href}">ver</a>'
+    )
+
+
+def _bcentral_client(grid, catalog=None):
+    """Only BCCh answers: both aggregator sources are down."""
+
+    def handler(request):
+        if request.url.host != "si3.bcentral.cl":
+            return httpx.Response(500)
+        if "IndicadoresDiarios" in request.url.path:
+            return httpx.Response(200, text=_catalog_html() if catalog is None else catalog)
+        return httpx.Response(200, text=grid)
+
+    return httpx.AsyncClient(transport=httpx.MockTransport(handler))
+
+
+def test_get_dollar_accepts_bcentral_grid():
+    assert asyncio.run(get_dollar(client=_bcentral_client(_gr_html()))) == 993.22
+
+
+def test_get_dollar_bcentral_discovers_series_url_from_catalog():
+    seen = []
+
+    def handler(request):
+        if request.url.host != "si3.bcentral.cl":
+            return httpx.Response(500)
+        seen.append(request.url.path)
+        if "IndicadoresDiarios" in request.url.path:
+            return httpx.Response(200, text=_catalog_html())
+        return httpx.Response(200, text=_gr_html())
+
+    client = httpx.AsyncClient(transport=httpx.MockTransport(handler))
+    assert asyncio.run(get_dollar(client=client)) == 993.22
+    assert seen == [
+        "/indicadoressiete/secure/IndicadoresDiarios.aspx",
+        "/indicadoressiete/secure/Serie.aspx",
+    ]
+
+
+def test_get_dollar_bcentral_uses_latest_cell_within_threshold():
+    # e.g. Monday morning before publication: Friday's value is still recent.
+    html = _gr_html(day=max(1, date.today().day - 1))
+    assert asyncio.run(get_dollar(client=_bcentral_client(html))) == 993.22
+
+
+def test_get_dollar_rejects_bcentral_when_nothing_published_this_year():
+    client = _bcentral_client(_gr_html(value=None))
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_dollar(client=client))
+
+
+def test_get_dollar_rejects_stale_bcentral_value():
+    stale = date.today() - timedelta(days=8)
+    if stale.year != date.today().year:
+        pytest.skip("no in-year date older than the threshold")
+    html = _gr_html(day=stale.day, month=stale.month)
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_dollar(client=_bcentral_client(html)))
+
+
+def test_get_dollar_rejects_bcentral_when_page_shows_another_year():
+    client = _bcentral_client(_gr_html(year=date.today().year - 1))
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_dollar(client=client))
+
+
+def test_get_dollar_rejects_bcentral_grid_without_day_rows():
+    # A grid without day rows is a layout change, not "unavailable": be loud.
+    html = _gr_html().split('<table id="gr">')[0] + '<table id="gr"><tr></tr></table>'
+    client = _bcentral_client(html)
     with pytest.raises(AllFailedError):
         asyncio.run(get_dollar(client=client))

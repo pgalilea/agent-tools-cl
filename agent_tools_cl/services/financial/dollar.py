@@ -35,12 +35,12 @@ async def _get_dolar_findic(client: httpx.AsyncClient) -> float:
     return _validate_dolar(float(row["valor"]), date.fromisoformat(row["fecha"]))
 
 
-async def get_dolar(client: httpx.AsyncClient | None = None) -> float:
+async def get_dollar(client: httpx.AsyncClient | None = None) -> float:
     """Latest CLP/USD: first source whose value passes its own validation wins."""
 
     if client is None:
         async with httpx.AsyncClient() as client:  # noqa
-            return await get_dolar(client)
+            return await get_dollar(client)
 
     return await first_success(
         _get_dolar_misindicadores(client),

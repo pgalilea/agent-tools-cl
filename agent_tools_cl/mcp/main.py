@@ -1,4 +1,4 @@
-"""MCP server exposing Chilean financial indicators (UF, UTM, dólar, cobre).
+"""MCP server exposing Chilean financial indicators (UF, UTM, dólar, copper).
 
 Run: uv run python -m agent_tools_cl.mcp.main
 (HTTP transport on http://127.0.0.1:8000/mcp)
@@ -33,7 +33,7 @@ from starlette.responses import PlainTextResponse
 
 from agent_tools_cl.core import AllFailedError
 from agent_tools_cl.mcp.security import get_csv_env, validate_token
-from agent_tools_cl.services.financial import get_cobre, get_dolar, get_uf, get_utm
+from agent_tools_cl.services.financial import get_copper, get_dollar, get_uf, get_utm
 
 
 async def try_tool(getter: Callable[[], Awaitable[float]]) -> float:
@@ -46,8 +46,8 @@ async def try_tool(getter: Callable[[], Awaitable[float]]) -> float:
 mcp = FastMCP(
     name="agent-tools-cl",
     instructions=(
-        "Chilean financial indicators. uf and utm are in CLP; dolar is CLP per "
-        "USD; cobre is USD per pound. Values are live-scraped and validated."
+        "Chilean financial indicators. uf and utm are in CLP; dollar is CLP per "
+        "USD; copper is USD per pound. Values are live-scraped and validated."
     ),
     auth=validate_token(),
 )
@@ -72,15 +72,15 @@ async def utm() -> float:
 
 
 @mcp.tool
-async def dolar() -> float:
+async def dollar() -> float:
     """Latest validated US dollar value in CLP."""
-    return await try_tool(get_dolar)
+    return await try_tool(get_dollar)
 
 
 @mcp.tool
-async def cobre() -> float:
+async def copper() -> float:
     """Latest validated copper price in USD per pound."""
-    return await try_tool(get_cobre)
+    return await try_tool(get_copper)
 
 
 def main() -> None:

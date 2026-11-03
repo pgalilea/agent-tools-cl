@@ -13,8 +13,8 @@ def test_tools_return_service_values(monkeypatch):
     values = {
         "get_uf": 40_000.0,
         "get_utm": 70_000.0,
-        "get_dolar": 950.0,
-        "get_cobre": 4.25,
+        "get_dollar": 950.0,
+        "get_copper": 4.25,
     }
     for name, value in values.items():
 
@@ -24,9 +24,9 @@ def test_tools_return_service_values(monkeypatch):
         monkeypatch.setattr(server, name, stub)
 
     tools = asyncio.run(server.mcp.list_tools())
-    assert {tool.name for tool in tools} == {"uf", "utm", "dolar", "cobre"}
+    assert {tool.name for tool in tools} == {"uf", "utm", "dollar", "copper"}
 
-    result = asyncio.run(server.mcp.call_tool("cobre", {}))
+    result = asyncio.run(server.mcp.call_tool("copper", {}))
     assert result.structured_content == {"result": 4.25}
 
 

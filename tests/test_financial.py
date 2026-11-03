@@ -5,7 +5,7 @@ import httpx
 import pytest
 
 from agent_tools_cl.core import AllFailedError
-from agent_tools_cl.services.financial import get_dolar, get_uf
+from agent_tools_cl.services.financial import get_dollar, get_uf
 
 TODAY = date.today().isoformat()
 STALE = (date.today() - timedelta(days=30)).isoformat()
@@ -18,13 +18,12 @@ STALE_HTML = HTML.replace(TODAY, STALE)
 JSON = {"serie": [{"fecha": TODAY, "valor": 41242.32}]}
 STALE_JSON = {"serie": [{"fecha": STALE, "valor": 41242.32}]}
 
-DOLAR_HTML = (
-    '<div class="name">USD</div></td><td class="value">$ 993,22</td>'
-    f'<td class="date">{TODAY}</td>'
+DOLLAR_HTML = (
+    f'<div class="name">USD</div></td><td class="value">$ 993,22</td><td class="date">{TODAY}</td>'
 )
-STALE_DOLAR_HTML = DOLAR_HTML.replace(TODAY, STALE)
-DOLAR_JSON = {"serie": [{"fecha": TODAY, "valor": 993.22}]}
-STALE_DOLAR_JSON = {"serie": [{"fecha": STALE, "valor": 993.22}]}
+STALE_DOLLAR_HTML = DOLLAR_HTML.replace(TODAY, STALE)
+DOLLAR_JSON = {"serie": [{"fecha": TODAY, "valor": 993.22}]}
+STALE_DOLLAR_JSON = {"serie": [{"fecha": STALE, "valor": 993.22}]}
 
 
 def _row(fecha, valor, estimate=False):
@@ -54,9 +53,11 @@ def _sii_html(value="41.242,32"):
     cells = ["&nbsp;"] * 12
     if value is not None:
         cells[today.month - 1] = value
-    row = f"<tr><th style='text-align:center;'>{today.day}</th>" + "".join(
-        f"<td style='text-align:right;'>{c}</td>" for c in cells
-    ) + "</tr>"
+    row = (
+        f"<tr><th style='text-align:center;'>{today.day}</th>"
+        + "".join(f"<td style='text-align:right;'>{c}</td>" for c in cells)
+        + "</tr>"
+    )
     return f'<table id="table_export"><tbody>{row}</tbody></table>'
 
 
@@ -134,22 +135,24 @@ def test_sii_rejects_unpublished_cell():
         asyncio.run(get_uf(client=client))
 
 
-def test_get_dolar_parses_html_source():
-    assert asyncio.run(get_dolar(client=_client(html=DOLAR_HTML, payload={"serie": []}))) == 993.22
+def test_get_dollar_parses_html_source():
+    assert (
+        asyncio.run(get_dollar(client=_client(html=DOLLAR_HTML, payload={"serie": []}))) == 993.22
+    )
 
 
-def test_get_dolar_falls_back_to_findic():
-    assert asyncio.run(get_dolar(client=_client(html_status=500, payload=DOLAR_JSON))) == 993.22
+def test_get_dollar_falls_back_to_findic():
+    assert asyncio.run(get_dollar(client=_client(html_status=500, payload=DOLLAR_JSON))) == 993.22
 
 
-def test_get_dolar_rejects_stale_values_from_every_source():
-    client = _client(html=STALE_DOLAR_HTML, payload=STALE_DOLAR_JSON)
+def test_get_dollar_rejects_stale_values_from_every_source():
+    client = _client(html=STALE_DOLLAR_HTML, payload=STALE_DOLLAR_JSON)
     with pytest.raises(AllFailedError):
-        asyncio.run(get_dolar(client=client))
+        asyncio.run(get_dollar(client=client))
 
 
-def test_get_dolar_rejects_uf_sized_values():
+def test_get_dollar_rejects_uf_sized_values():
     # A UF-sized number must never pass as a dollar: bounds are per indicator.
-    client = _client(html=DOLAR_HTML.replace("993,22", "41.242,32"), payload=JSON)
+    client = _client(html=DOLLAR_HTML.replace("993,22", "41.242,32"), payload=JSON)
     with pytest.raises(AllFailedError):
-        asyncio.run(get_dolar(client=client))
+        asyncio.run(get_dollar(client=client))

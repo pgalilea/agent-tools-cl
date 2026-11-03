@@ -3,7 +3,7 @@ import asyncio
 import click
 
 from ..core import AllFailedError
-from ..services.financial import get_cobre, get_dolar, get_uf, get_utm
+from ..services.financial import get_copper, get_dollar, get_uf, get_utm
 
 financial = click.Group("financial", help="Financial indicators.")
 
@@ -18,12 +18,12 @@ def uf():
 
 
 @financial.command()
-def dolar():
+def dollar():
     """Latest validated CLP/USD value (fastest of multiple sources)."""
     try:
-        click.echo(asyncio.run(get_dolar()))
+        click.echo(asyncio.run(get_dollar()))
     except AllFailedError as e:
-        raise SystemExit(f"Error: no valid dolar source: {e}")
+        raise SystemExit(f"Error: no valid dollar source: {e}")
 
 
 @financial.command()
@@ -36,9 +36,9 @@ def utm():
 
 
 @financial.command()
-def cobre():
+def copper():
     """Latest validated copper price in USD per lb (fastest of multiple sources)."""
     try:
-        click.echo(f"{asyncio.run(get_cobre()):.2f}")
+        click.echo(f"{asyncio.run(get_copper()):.2f}")
     except AllFailedError as e:
-        raise SystemExit(f"Error: no valid cobre source: {e}")
+        raise SystemExit(f"Error: no valid copper source: {e}")

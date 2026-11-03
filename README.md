@@ -11,6 +11,10 @@ Every value is fetched from multiple sources in parallel and validated against s
 ```sh
 uvx --from git+https://github.com/pgalilea/agent-tools-cl.git agent-tools-cl <command>
 ```
+For example:
+```sh
+uvx --from git+https://github.com/pgalilea/agent-tools-cl.git agent-tools-cl financial uf
+```
 
 To avoid re-typing, **install it once** as a tool and use the plain command:
 

@@ -13,6 +13,12 @@ dependencies = [
     "httpx>=0.28.1",
 ]
 
+[dependency-groups]
+dev = [
+    "pytest>=9.2.0",
+    "ty>=0.0.95",
+]
+
 [project.scripts]
 agent-tools-cl = "agent_tools_cl:main"
 
@@ -25,8 +31,5 @@ module-root = ""
 module-name = "agent_tools_cl"
 source-include = ["tests/**"]
 
-[dependency-groups]
-dev = [
-    "pytest>=9.2.0",
-    "ty>=0.0.95",
-]
+[tool.ruff]
+line-length = 100

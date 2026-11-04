@@ -1,7 +1,14 @@
 from collections.abc import Callable
-from datetime import date
+from datetime import date, datetime
+from zoneinfo import ZoneInfo
 
 from .constants import MAX_AGE_DAYS
+
+
+def today_cl() -> date:
+    """Chile-local today: sources are Santiago-based, so 'today' must be too."""
+
+    return datetime.now(ZoneInfo("America/Santiago")).date()
 
 
 def validator(name: str, low: float, hi: float) -> Callable:
@@ -10,7 +17,7 @@ def validator(name: str, low: float, hi: float) -> Callable:
     def validate(value: float, as_of: date) -> float:
         if not low <= value <= hi:
             raise ValueError(f"{name} out of range: {value}")
-        if (date.today() - as_of).days > MAX_AGE_DAYS:
+        if (today_cl() - as_of).days > MAX_AGE_DAYS:
             raise ValueError(f"stale {name} date: {as_of}")
         return value
 

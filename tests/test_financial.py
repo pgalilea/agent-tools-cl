@@ -5,7 +5,15 @@ import httpx
 import pytest
 
 from agent_tools_cl.core import AllFailedError
-from agent_tools_cl.services.financial import get_dollar, get_uf
+from agent_tools_cl.services.financial import (
+    get_dollar,
+    get_euro,
+    get_imacec,
+    get_ipc,
+    get_tpm,
+    get_uf,
+    get_unemployment,
+)
 
 TODAY = date.today().isoformat()
 STALE = (date.today() - timedelta(days=30)).isoformat()
@@ -253,3 +261,76 @@ def test_get_dollar_rejects_bcentral_grid_without_day_rows():
     client = _bcentral_client(html)
     with pytest.raises(AllFailedError):
         asyncio.run(get_dollar(client=client))
+
+
+EURO_JSON = {"serie": [{"fecha": TODAY, "valor": 1097.72}]}
+TPM_JSON = {"serie": [{"fecha": TODAY, "valor": 4.5}]}
+IPC_JSON = {"serie": [{"fecha": TODAY, "valor": 0.4}]}
+IMACEC_JSON = {"serie": [{"fecha": TODAY, "valor": 0.2}]}
+UNEMPLOYMENT_JSON = {"serie": [{"fecha": TODAY, "valor": 9.8}]}
+
+OLD = (date.today() - timedelta(days=90)).isoformat()
+VERY_OLD = (date.today() - timedelta(days=120)).isoformat()
+
+
+def test_get_euro_parses_json():
+    assert asyncio.run(get_euro(client=_client(payload=EURO_JSON))) == 1097.72
+
+
+def test_get_euro_rejects_non_euro_values():
+    # A UF-sized number must never pass as a euro: bounds are per indicator.
+    payload = {"serie": [{"fecha": TODAY, "valor": 41242.32}]}
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_euro(client=_client(payload=payload)))
+
+
+def test_get_tpm_parses_json():
+    assert asyncio.run(get_tpm(client=_client(payload=TPM_JSON))) == 4.5
+
+
+def test_get_tpm_rejects_out_of_range_values():
+    payload = {"serie": [{"fecha": TODAY, "valor": 45.0}]}
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_tpm(client=_client(payload=payload)))
+
+
+def test_get_ipc_parses_json():
+    assert asyncio.run(get_ipc(client=_client(payload=IPC_JSON))) == 0.4
+
+
+def test_get_ipc_accepts_misindicadores_row():
+    html = (
+        '<div class="name">IPC</div></td><td class="value">0,40</td>'
+        f'<td class="date">{TODAY}</td>'
+    )
+    client = _client(html=html, payload={"serie": []})
+    assert asyncio.run(get_ipc(client=client)) == 0.4
+
+
+def test_get_ipc_rejects_stale_values():
+    # Monthly indicators are published weeks late, but 90 days is too old.
+    payload = {"serie": [{"fecha": OLD, "valor": 0.4}]}
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_ipc(client=_client(payload=payload)))
+
+
+def test_get_imacec_parses_json():
+    assert asyncio.run(get_imacec(client=_client(payload=IMACEC_JSON))) == 0.2
+
+
+def test_get_imacec_rejects_stale_values():
+    payload = {"serie": [{"fecha": VERY_OLD, "valor": 0.2}]}
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_imacec(client=_client(payload=payload)))
+
+
+def test_get_unemployment_parses_json():
+    assert asyncio.run(
+        get_unemployment(client=_client(payload=UNEMPLOYMENT_JSON))
+    ) == 9.8
+
+
+def test_get_unemployment_rejects_stale_values():
+    payload = {"serie": [{"fecha": VERY_OLD, "valor": 9.8}]}
+    with pytest.raises(AllFailedError):
+        asyncio.run(get_unemployment(client=_client(payload=payload)))

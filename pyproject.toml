@@ -1,6 +1,6 @@
 [project]
 name = "agent-tools-cl"
-version = "0.1.0"
+version = "0.1.6"
 description = "Agent tools for chilean market"
 readme = "README.md"
 authors = [
@@ -16,6 +16,7 @@ dependencies = [
 [dependency-groups]
 dev = [
     "pytest>=9.2.0",
+    "ruff>=0.17.3",
     "ty>=0.0.95",
 ]
 

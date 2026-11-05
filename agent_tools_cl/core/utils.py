@@ -11,13 +11,13 @@ def today_cl() -> date:
     return datetime.now(ZoneInfo("America/Santiago")).date()
 
 
-def validator(name: str, low: float, hi: float) -> Callable:
+def validator(name: str, low: float, hi: float, max_age: int = MAX_AGE_DAYS) -> Callable:
     """Reject implausible or stale values; each source applies this to its own data."""
 
     def validate(value: float, as_of: date) -> float:
         if not low <= value <= hi:
             raise ValueError(f"{name} out of range: {value}")
-        if (today_cl() - as_of).days > MAX_AGE_DAYS:
+        if (today_cl() - as_of).days > max_age:
             raise ValueError(f"stale {name} date: {as_of}")
         return value
 

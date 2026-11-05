@@ -1,4 +1,4 @@
-"""MCP server exposing Chilean financial indicators (UF, UTM, dólar, copper).
+"""MCP server exposing Chilean indicators and public data.
 
 Run: uv run python -m agent_tools_cl.mcp.main
 (HTTP transport on http://127.0.0.1:8000/mcp)
@@ -25,6 +25,7 @@ front (reverse proxy) and set HSTS there; this app cannot know the public scheme
 
 import os
 from collections.abc import Awaitable, Callable
+from typing import Any, TypeVar
 
 from fastmcp import FastMCP
 from fastmcp.exceptions import ToolError
@@ -33,21 +34,38 @@ from starlette.responses import PlainTextResponse
 
 from agent_tools_cl.core import AllFailedError
 from agent_tools_cl.mcp.security import get_csv_env, validate_token
-from agent_tools_cl.services.financial import get_copper, get_dollar, get_uf, get_utm
+from agent_tools_cl.services.calendar import get_holidays, get_next_holiday
+from agent_tools_cl.services.financial import (
+    get_copper,
+    get_dollar,
+    get_euro,
+    get_imacec,
+    get_ipc,
+    get_tpm,
+    get_uf,
+    get_unemployment,
+    get_utm,
+)
+
+T = TypeVar("T")
 
 
-async def try_tool(getter: Callable[[], Awaitable[float]]) -> float:
+async def try_tool(getter: Callable[..., Awaitable[T]], *args: Any) -> T:
     try:
-        return await getter()
-    except AllFailedError as e:
+        # *args for tools with optional arguments
+        return await getter(*args)
+    except (AllFailedError, ValueError) as e:
         raise ToolError(f"no valid source: {e}") from e
 
 
 mcp = FastMCP(
     name="agent-tools-cl",
     instructions=(
-        "Chilean financial indicators. uf and utm are in CLP; dollar is CLP per "
-        "USD; copper is USD per pound. Values are live-scraped and validated."
+        "Chilean indicators and public data. uf and utm are in CLP; dollar and "
+        "euro are CLP per unit; copper is USD per pound; tpm, ipc, imacec and "
+        "unemployment are in percent; air is the latest MP2.5 reading for a "
+        "comuna; holidays lists public holidays. Values are live-scraped and "
+        "validated."
     ),
     auth=validate_token(),
 )
@@ -81,6 +99,48 @@ async def dollar() -> float:
 async def copper() -> float:
     """Latest validated copper price in USD per pound."""
     return await try_tool(get_copper)
+
+
+@mcp.tool
+async def euro() -> float:
+    """Latest validated euro value in CLP."""
+    return await try_tool(get_euro)
+
+
+@mcp.tool
+async def tpm() -> float:
+    """Latest validated monetary policy rate (TPM) in percent."""
+    return await try_tool(get_tpm)
+
+
+@mcp.tool
+async def ipc() -> float:
+    """Latest validated IPC monthly variation in percent."""
+    return await try_tool(get_ipc)
+
+
+@mcp.tool
+async def imacec() -> float:
+    """Latest validated IMACEC variation in percent."""
+    return await try_tool(get_imacec)
+
+
+@mcp.tool
+async def unemployment() -> float:
+    """Latest validated unemployment rate in percent."""
+    return await try_tool(get_unemployment)
+
+
+@mcp.tool
+async def holidays(year: int | None = None) -> list[dict[str, str]]:
+    """Chilean public holidays. Without a year: only the next one."""
+    if year is None:
+        holiday = await try_tool(get_next_holiday)
+        return [{"date": holiday.date.isoformat(), "name": holiday.name}]
+    return [
+        {"date": holiday.date.isoformat(), "name": holiday.name}
+        for holiday in await try_tool(get_holidays, year)
+    ]
 
 
 def main() -> None:

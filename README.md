@@ -1,6 +1,17 @@
 # agent-tools-cl
 
-Chilean financial indicators — **UF**, **UTM**, **dollar** (CLP/USD) and **copper** — as both a **CLI** and an **MCP server**.
+Chilean indicators and public data: 
+- **UF**
+- **UTM**
+- **dollar**
+- **euro**
+- **copper**
+- **TPM**
+- **IPC**
+- **IMACEC**
+- **unemployment**
+- **holidays**
+as both a **CLI** and an **MCP server**.
 
 Every value is fetched from multiple sources in parallel and validated against sanity bounds and freshness; the first source whose value passes validation wins. If every source fails, the tool exits with an error instead of returning a stale or untrustworthy number.
 
@@ -82,25 +93,112 @@ agent-tools-cl financial copper
 
 
 
+### `financial euro`
+
+Latest validated **CLP/EUR** rate.
+
+```sh
+agent-tools-cl financial euro
+# 1097.72
+```
+
+
+
+### `financial tpm`
+
+Latest validated **monetary policy rate (TPM)** in percent.
+
+```sh
+agent-tools-cl financial tpm
+# 4.5
+```
+
+
+
+### `financial ipc`
+
+Latest validated **IPC monthly variation** in percent.
+
+```sh
+agent-tools-cl financial ipc
+# 0.4
+```
+
+
+
+### `financial imacec`
+
+Latest validated **IMACEC variation** in percent.
+
+```sh
+agent-tools-cl financial imacec
+# 0.2
+```
+
+
+
+### `financial unemployment`
+
+Latest validated **unemployment rate** in percent.
+
+```sh
+agent-tools-cl financial unemployment
+# 9.8
+```
+
+
+
+### `calendar holidays`
+
+Next Chilean public holiday, or every holiday in a year with `--year`.
+
+```sh
+agent-tools-cl calendar holidays
+# 2026-12-08 Inmaculada Concepción (en 34 días)
+
+agent-tools-cl calendar holidays --year 2027
+# 2027-01-01 Año Nuevo
+# ...
+```
+
+
+
 ## MCP server
 
 FastMCP HTTP server exposing the same tools with the same names and semantics:
 
 
-| Tool     | Unit          |
-| -------- | ------------- |
-| `uf`     | CLP           |
-| `utm`    | CLP           |
-| `dollar` | CLP per USD   |
-| `copper` | USD per pound |
+| Tool           | Unit                              |
+| -------------- | --------------------------------- |
+| `uf`           | CLP                               |
+| `utm`          | CLP                               |
+| `dollar`       | CLP per USD                       |
+| `euro`         | CLP per EUR                       |
+| `copper`       | USD per pound                     |
+| `tpm`          | percent                           |
+| `ipc`          | percent (monthly)                 |
+| `imacec`       | percent                           |
+| `unemployment` | percent                           |
+| `holidays`     | dates (optional `year`)           |
+
+`holidays` takes an optional `year` and returns only the next holiday when omitted.
 
 
 
 
 ### Run
 
+The MCP server needs the `mcp` extra (`pip install agent-tools-cl[mcp]`), which adds `fastmcp` on top of the base dependencies:
+
 ```sh
-uvx --from git+https://github.com/pgalilea/agent-tools-cl.git python -m agent_tools_cl.mcp.main
+uvx --from "agent-tools-cl[mcp] @ git+https://github.com/pgalilea/agent-tools-cl.git" python -m agent_tools_cl.mcp.main
+```
+
+To install it once as a tool:
+
+```sh
+uv tool install "agent-tools-cl[mcp] @ git+https://github.com/pgalilea/agent-tools-cl.git"
+python -m agent_tools_cl.mcp.main
 ```
 
 HTTP transport on `http://127.0.0.1:8000/mcp`, liveness probe at `GET /health` (unauthenticated).
